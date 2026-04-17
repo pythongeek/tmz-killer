@@ -1,0 +1,28 @@
+{
+  "name": "tmz-killer",
+  "version": "1.0.0",
+  "description": "Automated celebrity news pipeline - detects, generates, and publishes breaking news",
+  "private": true,
+  "scripts": {
+    "osint": "node agents/osint-signal-agent.js --mode=continuous-scan",
+    "osint:once": "node agents/osint-signal-agent.js",
+    "docket": "node agents/docket-hound-agent.js --monitor",
+    "eic": "node agents/eic-orchestrator.js --watch",
+    "eic:score": "node agents/eic-orchestrator.js --score",
+    "generate:article": "node agents/seo-content-intelligence-agent.js",
+    "generate:viral": "node agents/viral-asset-factory.js",
+    "publish": "node agents/wordpress-manager.js",
+    "dashboard": "cd dashboard && npm run dev",
+    "dashboard:build": "cd dashboard && npm run build",
+    "install:tools": "apt install -y poppler-utils tesseract-ocr espeak-ng ffmpeg imagemagick"
+  },
+  "keywords": [
+    "celebrity-news",
+    "automation",
+    "osint",
+    "content-pipeline",
+    "wordpress"
+  ],
+  "author": "",
+  "license": "MIT"
+}

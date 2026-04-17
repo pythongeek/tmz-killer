@@ -1,0 +1,8 @@
+{
+  "siteUrl": "https://your-wordpress-site.com",
+  "apiBase": "/wp-json/wp/v2",
+  "username": "",
+  "appPassword": "",
+  "defaultAuthor": 1,
+  "defaultCategory": 1
+}
