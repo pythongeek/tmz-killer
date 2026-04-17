@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Signal {
   id: string
@@ -18,6 +19,7 @@ export default function SignalsPage() {
   const [signals, setSignals] = useState<Signal[]>([])
   const [loading, setLoading] = useState(true)
   const [sources, setSources] = useState<Record<string, string>>({})
+  const router = useRouter()
 
   useEffect(() => {
     fetchSignals()
@@ -145,7 +147,30 @@ export default function SignalsPage() {
                   </span>
                 </div>
                 <div className="flex gap-2">
-                  <button className="text-sm text-blue-400 hover:text-blue-300 transition">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await fetch('/api/queue', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            signalId: signal.id,
+                            subject: signal.subject,
+                            viralityScore: signal.viralityScore,
+                            primarySignal: signal.primarySignal,
+                            secondarySignal: signal.secondarySignal,
+                            confidence: signal.confidence,
+                            platforms: signal.platforms,
+                            priority: signal.viralityScore >= 85 ? 'critical' : 'standard'
+                          })
+                        })
+                        router.push('/queue')
+                      } catch (err) {
+                        console.error('Failed to add to queue:', err)
+                      }
+                    }}
+                    className="text-sm text-blue-400 hover:text-blue-300 transition"
+                  >
                     View Details →
                   </button>
                 </div>
