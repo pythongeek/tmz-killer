@@ -1,13 +1,24 @@
 /**
  * GET /api/signals
- * Fetch all detected signals from OSINT sources
+ * Fetch detected signals from OSINT sources + AI analysis
  *
  * Uses free data sources:
- * - OpenSky Network (flight data)
- * - Reddit JSON API
- * - Google Trends RSS
+ * - OpenSky Network (flight data) - no API key
+ * - Reddit JSON API - no API key
+ * - Google Trends RSS - no API key
+ *
+ * Optional: MiniMax AI for signal analysis (set MINIMAX_API_KEY)
  */
 import { NextResponse } from 'next/server'
+
+// Import MiniMax client
+let miniMax: any = null
+try {
+  const mod = await import('@/lib/minimax')
+  miniMax = mod
+} catch {
+  // MiniMax not configured
+}
 
 const DEMO_SIGNALS = [
   {
@@ -47,17 +58,43 @@ const DEMO_SIGNALS = [
 
 export async function GET() {
   try {
-    // In production, this would fetch from actual OSINT sources
+    // In production, fetch from real OSINT sources
     // For now, return demo data
+    const signals = DEMO_SIGNALS
+
+    // If MiniMax is configured, analyze each signal with AI
+    let analyzedSignals = signals
+    if (miniMax && process.env.MINIMAX_API_KEY) {
+      analyzedSignals = await Promise.all(
+        signals.map(async (signal) => {
+          try {
+            const analysis = await miniMax.analyzeSignal(
+              signal.subject,
+              signal.primarySignal,
+              signal.secondarySignal
+            )
+            return {
+              ...signal,
+              viralityScore: analysis.viralityScore || signal.viralityScore,
+              confidence: analysis.confidence || signal.confidence,
+              aiSummary: analysis.summary,
+              keyFacts: analysis.keyFacts
+            }
+          } catch {
+            return signal
+          }
+        })
+      )
+    }
 
     return NextResponse.json({
-      signals: DEMO_SIGNALS,
-      total: DEMO_SIGNALS.length,
+      signals: analyzedSignals,
+      total: analyzedSignals.length,
       sources: {
         opensky: 'connected',
         reddit: 'connected',
         google_trends: 'connected',
-        instagram: 'connected'
+        minimax: process.env.MINIMAX_API_KEY ? 'connected' : 'demo_mode'
       }
     })
   } catch (error) {
@@ -69,19 +106,37 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
 
-    // Validate signal
     if (!body.subject || !body.primarySignal) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Calculate virality score (simplified)
-    const viralityScore = calculateViralityScore(body)
+    // Use MiniMax AI to analyze if available
+    let viralityScore = calculateViralityScore(body)
+    let aiSummary = ''
+    let keyFacts: string[] = []
+
+    if (miniMax && process.env.MINIMAX_API_KEY) {
+      try {
+        const analysis = await miniMax.analyzeSignal(
+          body.subject,
+          body.primarySignal,
+          body.secondarySignal || ''
+        )
+        viralityScore = analysis.viralityScore || viralityScore
+        aiSummary = analysis.summary || ''
+        keyFacts = analysis.keyFacts || []
+      } catch {
+        // Fall back to rule-based scoring
+      }
+    }
 
     const signal = {
       id: `sig-${Date.now()}`,
       timestamp: new Date().toISOString(),
       ...body,
       viralityScore,
+      aiSummary,
+      keyFacts,
       status: 'pending'
     }
 
@@ -92,18 +147,11 @@ export async function POST(request: Request) {
 }
 
 function calculateViralityScore(signal: any): number {
-  let score = 50 // base
-
-  // Celebrity tier
+  let score = 50
   const aList = ['taylor swift', 'beyonce', 'kim kardashian', 'kanye', 'elon musk']
-  if (aList.some(n => signal.subject?.toLowerCase().includes(n))) score += 30
-
-  // Signal type
+  if (aList.some((n: string) => signal.subject?.toLowerCase().includes(n))) score += 30
   if (signal.primarySignal?.includes('court') || signal.primarySignal?.includes('divorce')) score += 20
   if (signal.primarySignal?.includes('jet') || signal.primarySignal?.includes('flight')) score += 15
-
-  // Confidence
   score += (signal.confidence || 1) * 5
-
   return Math.min(100, score)
 }
