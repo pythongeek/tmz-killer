@@ -174,7 +174,7 @@ async function fetchGoogleTrends(): Promise<any[]> {
             secondarySignal: `geo: ${GEO}, traffic: ${trafficMatch?.[1] || 'unknown'}`,
             confidence: 2,
             platforms: ['google_trends'],
-            viralityScore: calculateFromTraffic(trafficMatch?.[1]),
+            viralityScore: calculateFromTraffic(trafficMatch?.[1] || '0'),
             traffic: trafficMatch?.[1] || 'unknown',
             sourceUrl: `https://trends.google.com/trends/trendingsearches/daily?geo=${GEO}`,
             status: 'pending'
